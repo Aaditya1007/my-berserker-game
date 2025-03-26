@@ -196,7 +196,7 @@ export default function BerserkerGame() {
                   }`}
                 ></div>
               ) : (
-                <span className="text-xs">🕳️</span>
+                <span role="img" aria-label="empty hole" className="text-xs">🕳️</span>
               )}
             </div>
           ))
