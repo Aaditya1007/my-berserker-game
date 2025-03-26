@@ -179,12 +179,12 @@ export default function BerserkerGame() {
         </div>
       )}
 
-      <div className="grid grid-cols-6 gap-1 bg-gray-800 p-2 w-fit border-2 border-yellow-400">
+      <div className="grid grid-cols-6 gap-1 bg-gray-800 p-2 w-fit border-4 border-pink-500">
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="w-12 h-12 bg-gray-200 border border-black flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-150"
+              className="w-12 h-12 bg-gray-200 border border-black flex items-center justify-center"
               onClick={() => placementMode === "click" && handlePlace(rowIndex, colIndex)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
