@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 const BOARD_SIZE = 6;
 const INITIAL_BERSERKERS = 8;
@@ -10,14 +10,8 @@ const createEmptyBoard = () =>
     .map(() => Array(BOARD_SIZE).fill(null));
 
 const directions = [
-  [-1, 0], // up
-  [1, 0], // down
-  [0, -1], // left
-  [0, 1], // right
-  [-1, -1], // top-left
-  [-1, 1], // top-right
-  [1, -1], // bottom-left
-  [1, 1], // bottom-right
+  [-1, 0], [1, 0], [0, -1], [0, 1],
+  [-1, -1], [-1, 1], [1, -1], [1, 1],
 ];
 
 export default function BerserkerGame() {
@@ -47,16 +41,12 @@ export default function BerserkerGame() {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const color = brd[r][c];
-        if (color) {
-          if (
-            checkLine(r, c, 1, 0, color) ||
-            checkLine(r, c, 0, 1, color) ||
-            checkLine(r, c, 1, 1, color) ||
-            checkLine(r, c, 1, -1, color)
-          ) {
-            return color;
-          }
-        }
+        if (color && (
+          checkLine(r, c, 1, 0, color) ||
+          checkLine(r, c, 0, 1, color) ||
+          checkLine(r, c, 1, 1, color) ||
+          checkLine(r, c, 1, -1, color)
+        )) return color;
       }
     }
     return null;
@@ -79,10 +69,8 @@ export default function BerserkerGame() {
     const newBoard = board.map((r) => [...r]);
     newBoard[row][col] = currentPlayer;
 
-    // Sound
     if (screamRef.current) screamRef.current.play();
 
-    // Pushing logic
     directions.forEach(([dr, dc]) => {
       const r1 = row + dr;
       const c1 = col + dc;
@@ -118,11 +106,8 @@ export default function BerserkerGame() {
     };
 
     const win = checkWin(newBoard);
-    if (win) {
-      setWinner(win);
-    } else if (nextBerserkers[currentPlayer] === 0) {
-      setWinner(currentPlayer);
-    }
+    if (win) setWinner(win);
+    else if (nextBerserkers[currentPlayer] === 0) setWinner(currentPlayer);
 
     setBoard(newBoard);
     setBerserkers(nextBerserkers);
@@ -147,14 +132,19 @@ export default function BerserkerGame() {
     setDragging(null);
   };
 
+  console.log("Board state:", board);
+
   return (
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">Berserker Board Game</h1>
+      <div className="bg-green-500 text-white p-2 mb-4 rounded">Tailwind is active ✅</div>
+
       {winner && (
         <div className="mb-2 text-green-600 font-bold text-lg">
           {winner.toUpperCase()} WINS!
         </div>
       )}
+
       <div className="mb-2">
         <span>Current Player: </span>
         <span className={`font-bold ${currentPlayer === "red" ? "text-red-500" : "text-white"}`}>
@@ -165,7 +155,7 @@ export default function BerserkerGame() {
       <div className="mb-4">
         <label className="mr-2 font-medium">Placement Mode:</label>
         <select
-          className="border p-1 rounded"
+          className="border p-1 rounded text-black"
           value={placementMode}
           onChange={(e) => setPlacementMode(e.target.value)}
         >
@@ -189,22 +179,24 @@ export default function BerserkerGame() {
         </div>
       )}
 
-      <div className="grid grid-cols-6 gap-1 bg-gray-800 p-2 w-fit">
+      <div className="grid grid-cols-6 gap-1 bg-gray-800 p-2 w-fit border-2 border-yellow-400">
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="w-12 h-12 bg-gray-200 flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out hover:scale-105"
+              className="w-12 h-12 bg-gray-200 border border-black flex items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-150"
               onClick={() => placementMode === "click" && handlePlace(rowIndex, colIndex)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
             >
-              {cell && (
+              {cell ? (
                 <div
-                  className={`w-8 h-8 rounded-full transition-all duration-300 ease-in-out transform ${
+                  className={`w-8 h-8 rounded-full ${
                     cell === "red" ? "bg-red-500" : "bg-white"
                   }`}
                 ></div>
+              ) : (
+                <span className="text-xs">🕳️</span>
               )}
             </div>
           ))
