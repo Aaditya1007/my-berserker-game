@@ -1,43 +1,35 @@
 import React, { useState, useRef } from "react";
-import "./BerserkerBoard.css"; // <-- Custom CSS file you'll create
+import "./BerserkerBoard.css";
 
 const BOARD_SIZE = 6;
 const INITIAL_BERSERKERS = 8;
 
-/** Creates a 6x6 board filled with null (empty). */
 function createEmptyBoard() {
   return Array(BOARD_SIZE)
     .fill(null)
     .map(() => Array(BOARD_SIZE).fill(null));
 }
 
-// All possible directions for pushing: up, down, left, right + diagonals
+// Directions to check for pushing
 const directions = [
-  [-1, 0],
-  [1, 0],
-  [0, -1],
-  [0, 1],
-  [-1, -1],
-  [-1, 1],
-  [1, -1],
-  [1, 1],
+  [-1, 0], [1, 0], [0, -1], [0, 1],
+  [-1, -1], [-1, 1], [1, -1], [1, 1],
 ];
 
 export default function BerserkerGame() {
-  // Our core states
   const [board, setBoard] = useState(createEmptyBoard());
-  const [currentPlayer, setCurrentPlayer] = useState("red"); // "red" or "white"
+  const [currentPlayer, setCurrentPlayer] = useState("red"); 
   const [berserkers, setBerserkers] = useState({ red: INITIAL_BERSERKERS, white: INITIAL_BERSERKERS });
   const [winner, setWinner] = useState(null);
+
   const screamRef = useRef(null);
 
-  // Check that row/col is on the board
+  // Basic validity check
   const isValid = (r, c) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
 
-  // If a player lines up 3 in a row, they win
+  // Check if we have 3 in a row anywhere
   const checkWin = (brd) => {
     function checkLine(r, c, dr, dc, color) {
-      // Look three cells in a certain direction (dr, dc)
       for (let i = 0; i < 3; i++) {
         const nr = r + dr * i;
         const nc = c + dc * i;
@@ -49,13 +41,12 @@ export default function BerserkerGame() {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const color = brd[r][c];
-        if (
-          color &&
-          (checkLine(r, c, 1, 0, color) ||
-            checkLine(r, c, 0, 1, color) ||
-            checkLine(r, c, 1, 1, color) ||
-            checkLine(r, c, 1, -1, color))
-        ) {
+        if (color && (
+          checkLine(r, c, 1, 0, color) ||
+          checkLine(r, c, 0, 1, color) ||
+          checkLine(r, c, 1, 1, color) ||
+          checkLine(r, c, 1, -1, color)
+        )) {
           return color;
         }
       }
@@ -63,91 +54,106 @@ export default function BerserkerGame() {
     return null;
   };
 
-  // Figures out whether a chain of pieces can be pushed in direction (dr, dc).
-  // Returns the chain if pushable, or null if blocked.
-  const canPush = (r, c, dr, dc, brd) => {
-    const positions = [];
-    while (isValid(r, c) && brd[r][c] !== null) {
-      positions.push([r, c]);
-      r += dr;
-      c += dc;
+  /**
+   * This revised function checks if exactly ONE piece can be pushed from (r, c).
+   * If the next cell in direction (dr, dc) is:
+   *   - Off-board => we can push it off
+   *   - Empty => we can push it there
+   *   - Occupied => blocked (return null)
+   * 
+   * If we can push, return an object describing the push action.
+   * Otherwise, return null to signal "no push."
+   */
+  const canPushOne = (r, c, dr, dc, brd) => {
+    // First, if out of bounds or there’s no pawn here, no push
+    if (!isValid(r, c) || brd[r][c] === null) {
+      return null;
     }
-    // If we’ve gone off-board or we found a non-empty cell, we can’t push
-    if (!isValid(r, c) || brd[r][c] !== null) return null;
-    return positions;
+
+    // The space behind it
+    const rNext = r + dr;
+    const cNext = c + dc;
+
+    // If that behind cell is off-board => can push piece off
+    if (!isValid(rNext, cNext)) {
+      return { type: "offBoard", fromR: r, fromC: c };
+    }
+
+    // If that behind cell is empty => can push piece there
+    if (brd[rNext][cNext] === null) {
+      return { type: "move", fromR: r, fromC: c, toR: rNext, toC: cNext };
+    }
+
+    // Otherwise, it's occupied => blocked
+    return null;
   };
 
-  // Place a piece at row/col, possibly pushing pieces
+  // Main place logic with single-pawn push checks
   const handlePlace = (row, col) => {
-    if (winner) return; // If game’s over, ignore
+    if (winner) return; 
     if (!isValid(row, col)) return;
 
-    // If the cell’s already occupied or you have no more berserkers to place
+    // If cell is occupied or no stash left, can't place
     if (board[row][col] !== null || berserkers[currentPlayer] <= 0) return;
 
-    // Make a copy
-    const newBoard = board.map((r) => [...r]);
-
-    // Place the current player's piece
+    // Copy board
+    const newBoard = board.map(rowArr => [...rowArr]);
+    // Place the new piece
     newBoard[row][col] = currentPlayer;
 
-    // Play the scream effect when placing
+    // Optional scream
     if (screamRef.current) {
-      screamRef.current.currentTime = 0; // optional: reset to start
+      screamRef.current.currentTime = 0;
       screamRef.current.play();
     }
 
-    // Attempt to push in all directions around this new piece
+    // Try to push each adjacent cell in the 8 directions
     directions.forEach(([dr, dc]) => {
       const adjR = row + dr;
       const adjC = col + dc;
 
       if (isValid(adjR, adjC) && newBoard[adjR][adjC] !== null) {
-        const chain = canPush(adjR, adjC, dr, dc, newBoard);
-        if (chain) {
-          // Push them forward in reverse order so we don't overwrite
-          for (let i = chain.length - 1; i >= 0; i--) {
-            const [fromR, fromC] = chain[i];
-            const toR = fromR + dr;
-            const toC = fromC + dc;
-            newBoard[toR][toC] = newBoard[fromR][fromC];
-            newBoard[fromR][fromC] = null;
-          }
-        } else {
-          // If we can’t push because the chain goes off-board, that piece “falls off”
-          if (!isValid(adjR + dr, adjC + dc)) {
-            const pushedColor = newBoard[adjR][adjC];
-            newBoard[adjR][adjC] = null;
-            // Return that piece to the stash
-            setBerserkers((prev) => ({
+        // Check if we can push exactly 1 occupant
+        const pushAction = canPushOne(adjR, adjC, dr, dc, newBoard);
+        if (pushAction) {
+          if (pushAction.type === "offBoard") {
+            // Remove occupant from board, return to stash
+            const pushedColor = newBoard[pushAction.fromR][pushAction.fromC];
+            newBoard[pushAction.fromR][pushAction.fromC] = null;
+            // Return that piece to stash
+            setBerserkers(prev => ({
               ...prev,
-              [pushedColor]: prev[pushedColor] + 1,
+              [pushedColor]: prev[pushedColor] + 1
             }));
+          } else if (pushAction.type === "move") {
+            // Move occupant into the empty cell
+            const occupant = newBoard[pushAction.fromR][pushAction.fromC];
+            newBoard[pushAction.toR][pushAction.toC] = occupant;
+            newBoard[pushAction.fromR][pushAction.fromC] = null;
           }
         }
+        // If pushAction is null => there's a contiguous pawn blocking, so no movement.
       }
     });
 
-    // Decrement the stash
-    setBerserkers((prev) => ({
+    // Deduct from stash
+    setBerserkers(prev => ({
       ...prev,
-      [currentPlayer]: prev[currentPlayer] - 1,
+      [currentPlayer]: prev[currentPlayer] - 1
     }));
 
-    // Check for a winner
+    // Check for winner
     const maybeWinner = checkWin(newBoard);
     if (maybeWinner) {
       setWinner(maybeWinner);
     }
 
-    // Update the board
+    // Commit changes
     setBoard(newBoard);
-
     // Switch players
-    setCurrentPlayer((p) => (p === "red" ? "white" : "red"));
+    setCurrentPlayer(p => (p === "red" ? "white" : "red"));
   };
 
-  // Reset the game
   const resetGame = () => {
     setBoard(createEmptyBoard());
     setBerserkers({ red: INITIAL_BERSERKERS, white: INITIAL_BERSERKERS });
@@ -156,43 +162,49 @@ export default function BerserkerGame() {
   };
 
   return (
-    <div>
-      {/* If you want to show the stash info: */}
+    <div className="game-container">
       <div className="status-panel">
         <div>
-          Current Player: <span className={currentPlayer === "red" ? "red-text" : "white-text"}>{currentPlayer}</span>
+          Current Player:{" "}
+          <span className={currentPlayer === "red" ? "red-text" : "white-text"}>
+            {currentPlayer}
+          </span>
         </div>
-        <div>Berserkers left — Red: {berserkers.red}, White: {berserkers.white}</div>
-        {winner && <div className="winner-text">{winner.toUpperCase()} WINS!</div>}
+        <div>
+          Berserkers left — Red: {berserkers.red}, White: {berserkers.white}
+        </div>
+        {winner && (
+          <div className="winner-text">
+            {winner.toUpperCase()} WINS!
+          </div>
+        )}
       </div>
 
-      {/* The actual 6x6 board */}
       <div className="berserker-board">
-        {board.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
+        {board.map((rowArr, rowIdx) =>
+          rowArr.map((cell, colIdx) => {
             let cellClass = "berserker-cell";
             if (cell === "red") cellClass += " red";
             else if (cell === "white") cellClass += " white";
 
             return (
               <div
-                key={`${rowIndex}-${colIndex}`}
+                key={`${rowIdx}-${colIdx}`}
                 className={cellClass}
-                onClick={() => handlePlace(rowIndex, colIndex)}
+                onClick={() => handlePlace(rowIdx, colIdx)}
               >
-                {cell ? (cell === "red" ? "R" : "W") : " "}
+                {/* Optionally show "R" or "W" or an icon */}
+                {cell === "red" ? "R" : cell === "white" ? "W" : " "}
               </div>
             );
           })
         )}
       </div>
 
-      {/* Reset button */}
       <button className="reset-button" onClick={resetGame}>
         Reset Game
       </button>
 
-      {/* Scream audio */}
       <audio ref={screamRef} src="/berserker-scream.mp3" preload="auto" />
     </div>
   );
