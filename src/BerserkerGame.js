@@ -2,32 +2,59 @@ import React, { useState, useRef } from "react";
 import "./BerserkerBoard.css";
 
 const BOARD_SIZE = 6;
-const INITIAL_BERSERKERS = 8;
 
-function createEmptyBoard() {
-  return Array(BOARD_SIZE)
+// We no longer have a stash, since you want 16 pawns on the board from the start
+// Let's define how many total pawns of each color:
+const TOTAL_PAWNS_PER_COLOR = 8; // 8 red + 8 white = 16 total
+
+// This creates a 6x6 board with 8 red and 8 white around the edges
+function createInitialBoard() {
+  // Make an empty 6x6 grid
+  const board = Array(BOARD_SIZE)
     .fill(null)
     .map(() => Array(BOARD_SIZE).fill(null));
+
+  // A quick sequence of perimeter cells (row,col) around the edge
+  // We'll grab the first 16 positions for 16 pawns total
+  let perimeterPositions = [
+    [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], // top row
+    [1, 5], [2, 5], [3, 5], [4, 5], [5, 5],        // right column
+    [5, 4], [5, 3], [5, 2], [5, 1], [5, 0],        // bottom row
+    [4, 0], [3, 0], [2, 0], [1, 0],                // left column
+  ];
+
+  // We only need 16 squares for 16 pawns (8 red + 8 white)
+  perimeterPositions = perimeterPositions.slice(0, 16);
+
+  // Fill the first 8 with red, the next 8 with white
+  for (let i = 0; i < 8; i++) {
+    const [r, c] = perimeterPositions[i];
+    board[r][c] = "red";
+  }
+  for (let i = 8; i < 16; i++) {
+    const [r, c] = perimeterPositions[i];
+    board[r][c] = "white";
+  }
+
+  return board;
 }
 
-// Directions to check for pushing
+// Directions to try pushing in: up/down/left/right + diagonals
 const directions = [
   [-1, 0], [1, 0], [0, -1], [0, 1],
   [-1, -1], [-1, 1], [1, -1], [1, 1],
 ];
 
 export default function BerserkerGame() {
-  const [board, setBoard] = useState(createEmptyBoard());
-  const [currentPlayer, setCurrentPlayer] = useState("red"); 
-  const [berserkers, setBerserkers] = useState({ red: INITIAL_BERSERKERS, white: INITIAL_BERSERKERS });
+  const [board, setBoard] = useState(createInitialBoard());
+  const [currentPlayer, setCurrentPlayer] = useState("red");
   const [winner, setWinner] = useState(null);
-
   const screamRef = useRef(null);
 
-  // Basic validity check
+  // Validate row,col
   const isValid = (r, c) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
 
-  // Check if we have 3 in a row anywhere
+  // 3-in-a-row check
   const checkWin = (brd) => {
     function checkLine(r, c, dr, dc, color) {
       for (let i = 0; i < 3; i++) {
@@ -41,12 +68,13 @@ export default function BerserkerGame() {
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const color = brd[r][c];
-        if (color && (
-          checkLine(r, c, 1, 0, color) ||
-          checkLine(r, c, 0, 1, color) ||
-          checkLine(r, c, 1, 1, color) ||
-          checkLine(r, c, 1, -1, color)
-        )) {
+        if (
+          color &&
+          (checkLine(r, c, 1, 0, color) ||
+            checkLine(r, c, 0, 1, color) ||
+            checkLine(r, c, 1, 1, color) ||
+            checkLine(r, c, 1, -1, color))
+        ) {
           return color;
         }
       }
@@ -55,49 +83,40 @@ export default function BerserkerGame() {
   };
 
   /**
-   * This revised function checks if exactly ONE piece can be pushed from (r, c).
-   * If the next cell in direction (dr, dc) is:
-   *   - Off-board => we can push it off
-   *   - Empty => we can push it there
-   *   - Occupied => blocked (return null)
-   * 
-   * If we can push, return an object describing the push action.
-   * Otherwise, return null to signal "no push."
+   * If there's exactly ONE piece at (r,c), check if it can be pushed:
+   * - If the next cell behind it is off-board => we push it off
+   * - If the next cell behind it is empty => we move it there
+   * - If that cell is occupied => blocked => no push
    */
   const canPushOne = (r, c, dr, dc, brd) => {
-    // First, if out of bounds or there’s no pawn here, no push
-    if (!isValid(r, c) || brd[r][c] === null) {
-      return null;
-    }
-
-    // The space behind it
+    if (!isValid(r, c) || brd[r][c] === null) return null;
     const rNext = r + dr;
     const cNext = c + dc;
 
-    // If that behind cell is off-board => can push piece off
+    // Off-board => push occupant off
     if (!isValid(rNext, cNext)) {
       return { type: "offBoard", fromR: r, fromC: c };
     }
-
-    // If that behind cell is empty => can push piece there
+    // Empty => push occupant to that cell
     if (brd[rNext][cNext] === null) {
       return { type: "move", fromR: r, fromC: c, toR: rNext, toC: cNext };
     }
-
-    // Otherwise, it's occupied => blocked
+    // Otherwise blocked
     return null;
   };
 
-  // Main place logic with single-pawn push checks
+  // Place a new piece at row,col
+  // We assume there's no "stash" concept now, so the currentPlayer can place infinitely
+  // Or you can limit how many total pieces each color can place if desired
   const handlePlace = (row, col) => {
-    if (winner) return; 
+    if (winner) return;
     if (!isValid(row, col)) return;
 
-    // If cell is occupied or no stash left, can't place
-    if (board[row][col] !== null || berserkers[currentPlayer] <= 0) return;
+    // If cell is occupied, can't place
+    if (board[row][col] !== null) return;
 
     // Copy board
-    const newBoard = board.map(rowArr => [...rowArr]);
+    const newBoard = board.map((rArr) => [...rArr]);
     // Place the new piece
     newBoard[row][col] = currentPlayer;
 
@@ -107,58 +126,41 @@ export default function BerserkerGame() {
       screamRef.current.play();
     }
 
-    // Try to push each adjacent cell in the 8 directions
+    // Attempt single-pawn pushes in all directions around (row,col)
     directions.forEach(([dr, dc]) => {
       const adjR = row + dr;
       const adjC = col + dc;
-
       if (isValid(adjR, adjC) && newBoard[adjR][adjC] !== null) {
-        // Check if we can push exactly 1 occupant
         const pushAction = canPushOne(adjR, adjC, dr, dc, newBoard);
         if (pushAction) {
           if (pushAction.type === "offBoard") {
-            // Remove occupant from board, return to stash
-            const pushedColor = newBoard[pushAction.fromR][pushAction.fromC];
+            // The occupant at fromR,fromC falls off the board
             newBoard[pushAction.fromR][pushAction.fromC] = null;
-            // Return that piece to stash
-            setBerserkers(prev => ({
-              ...prev,
-              [pushedColor]: prev[pushedColor] + 1
-            }));
           } else if (pushAction.type === "move") {
-            // Move occupant into the empty cell
+            // Move occupant to the behind cell
             const occupant = newBoard[pushAction.fromR][pushAction.fromC];
             newBoard[pushAction.toR][pushAction.toC] = occupant;
             newBoard[pushAction.fromR][pushAction.fromC] = null;
           }
         }
-        // If pushAction is null => there's a contiguous pawn blocking, so no movement.
       }
     });
 
-    // Deduct from stash
-    setBerserkers(prev => ({
-      ...prev,
-      [currentPlayer]: prev[currentPlayer] - 1
-    }));
-
     // Check for winner
     const maybeWinner = checkWin(newBoard);
-    if (maybeWinner) {
-      setWinner(maybeWinner);
-    }
+    if (maybeWinner) setWinner(maybeWinner);
 
-    // Commit changes
     setBoard(newBoard);
+
     // Switch players
-    setCurrentPlayer(p => (p === "red" ? "white" : "red"));
+    setCurrentPlayer((p) => (p === "red" ? "white" : "red"));
   };
 
+  // Reset everything
   const resetGame = () => {
-    setBoard(createEmptyBoard());
-    setBerserkers({ red: INITIAL_BERSERKERS, white: INITIAL_BERSERKERS });
-    setCurrentPlayer("red");
+    setBoard(createInitialBoard());
     setWinner(null);
+    setCurrentPlayer("red");
   };
 
   return (
@@ -170,9 +172,6 @@ export default function BerserkerGame() {
             {currentPlayer}
           </span>
         </div>
-        <div>
-          Berserkers left — Red: {berserkers.red}, White: {berserkers.white}
-        </div>
         {winner && (
           <div className="winner-text">
             {winner.toUpperCase()} WINS!
@@ -180,30 +179,29 @@ export default function BerserkerGame() {
         )}
       </div>
 
+      {/* The 6x6 board */}
       <div className="berserker-board">
-        {board.map((rowArr, rowIdx) =>
-          rowArr.map((cell, colIdx) => {
+        {board.map((rowArr, rowIndex) =>
+          rowArr.map((cell, colIndex) => {
             let cellClass = "berserker-cell";
-            if (cell === "red") cellClass += " red";
-            else if (cell === "white") cellClass += " white";
+            // We'll add a separate class for each color to handle the sprite
+            if (cell === "red") cellClass += " red-pawn";
+            else if (cell === "white") cellClass += " white-pawn";
 
             return (
               <div
-                key={`${rowIdx}-${colIdx}`}
+                key={`${rowIndex}-${colIndex}`}
                 className={cellClass}
-                onClick={() => handlePlace(rowIdx, colIdx)}
+                onClick={() => handlePlace(rowIndex, colIndex)}
               >
-                {/* Optionally show "R" or "W" or an icon */}
-                {cell === "red" ? "R" : cell === "white" ? "W" : " "}
+                {/* cell is empty => no content, otherwise the sprite is shown via CSS background */}
               </div>
             );
           })
         )}
       </div>
 
-      <button className="reset-button" onClick={resetGame}>
-        Reset Game
-      </button>
+      <button className="reset-button" onClick={resetGame}>Reset Game</button>
 
       <audio ref={screamRef} src="/berserker-scream.mp3" preload="auto" />
     </div>
