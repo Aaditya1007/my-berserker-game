@@ -1,35 +1,89 @@
 /* BerserkerBoard.css */
 
 .berserker-board {
-  /* The core grid: 6 columns, some gaps. */
   display: grid;
-  grid-template-columns: repeat(6, 50px);
+  grid-template-columns: repeat(6, 60px);
   gap: 5px;
-
-  /* Cosmetic stuff */
   background-color: #333;
   padding: 10px;
   border: 4px solid pink;
+  width: fit-content;
+  margin: 20px auto; 
 }
 
 .berserker-cell {
-  width: 50px;
-  height: 50px;
-  background-color: #ccc;
+  width: 60px;
+  height: 60px;
+  background-color: #aaa;
   border: 1px solid #999;
-
-  /* Center content in the cell */
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1rem;
+  font-size: 1.2rem;
+  user-select: none;
   cursor: pointer;
 }
 
 .berserker-cell.red {
-  background-color: #ff9999; /* or another “red-ish” color */
+  background-color: #ff9999;
 }
 
 .berserker-cell.white {
   background-color: #eee;
+}
+
+/* For the sprite images */
+.pawn-sprite {
+  width: 50px;
+  height: 50px;
+  image-rendering: pixelated; /* gives that retro, blocky look if your sprite is pixel-art */
+}
+
+/* Basic status + reset styling */
+.status-panel {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.red-text {
+  color: #f00;
+}
+
+.white-text {
+  color: #ddd;
+  text-shadow: 1px 1px #333;
+}
+
+.winner-text {
+  color: gold;
+  font-size: 1.2rem;
+  margin-top: 5px;
+}
+
+.reset-button {
+  margin: 20px auto;
+  padding: 8px 16px;
+  background-color: #276ef1;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: block;
+}
+
+/* The stash container styling */
+.stash-row {
+  display: flex;
+  justify-content: space-around;
+  margin: 15px 0;
+}
+
+.stash {
+  text-align: center;
+}
+
+.stash-label {
+  margin-bottom: 5px;
+  font-weight: bold;
 }
