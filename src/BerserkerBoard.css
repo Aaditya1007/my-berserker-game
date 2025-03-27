@@ -1,6 +1,11 @@
 /* BerserkerBoard.css */
 
-/* The board layout */
+.game-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* 6x6 grid */
 .berserker-board {
   display: grid;
   grid-template-columns: repeat(6, 60px);
@@ -23,12 +28,21 @@
   cursor: pointer;
 }
 
-/* Simple text styling for the status panel */
-.game-container {
-  text-align: center;
-  margin-top: 20px;
+/* Pawn image styling */
+.pawn-sprite {
+  width: 50px;
+  height: 50px;
+  image-rendering: pixelated; /* If it's small pixel-art, prevents blur */
 }
 
+/* If you had separate CSS animations for red/white, you'd do it like:
+.red-sprite { animation: bob-red 1s infinite alternate; }
+.white-sprite { animation: bob-white 1.2s infinite alternate; }
+@keyframes bob-red { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+... 
+*/
+
+/* Status + reset styling */
 .status-panel {
   margin-bottom: 15px;
 }
@@ -57,41 +71,4 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-}
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   RETRO ANIMATED SPRITES 
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
-/* .red-pawn and .white-pawn each have a background image plus a wiggle animation.
-   Replace these data URIs with real pixel-art images or sprite GIFs if you prefer. */
-
-/* A tiny 16x16 PNG (red cat) for demonstration, with "pixelated" rendering */
-.red-pawn {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAB20lEQVQ4T63SMUsCYRAE4I+AFAVvYCXBhBxAHNeAIdYBYgfYGXIhyAoN4B4I4gAwvjvb5eNkD6omqnmjyUFFl7yLuPhETmNoHHEvQOE06b/mvDXc4sZC4eLgAw2ASEHrjr0GBwQBFAy/v7+ZfcUgJUuFIQ7ZhJAYZFiX0+muKnKuqNziR88ez7H/eN5w7ACnFeXsg6v16GAPYHgC8DcgvbeehWn7ZpaAX5fz8w3y/d1difXLh05APl4Y2Mn1fNrfGGjbc7BQu+z88RtfRZhKXFClJKtaHArHvg1DTAFb9e7ns8WnXLfBgvXb0mCvA4kO33d4FkC+TIn7uXU1bpbbdaXeuJgX36ewbTrYbAr4Ig4c4QriLC4ypMi8WwUX8x2Rw7Db7qLdYfQBAQoiEe62ANxrxqeNxyOJ4LOzRov5OyDC/n7a2Tckpw+0mOpHO31rmhQxUGCNL8+5x+B5fTy04P0qN6dAAAAAElFTkSuQmCC");
-  background-size: cover; 
-  image-rendering: pixelated; /* so it looks crunchy/retro */
-  animation: wiggle-red 1s infinite alternate;
-}
-
-/* .white-pawn: Another data URI or a real file path. 
-   For demonstration, let's do a tiny 16x16 PNG with a "bunny" shape. */
-.white-pawn {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABnklEQVQ4T82SQU/CQBSGh3h8DvFV6CurYcuZ3MQN6Whd5Ac/4S3gE72gEohAF3m2FA35g10oHlUwHiE8ejvNo59f9gZXcdSSLaMlE2WZ/YRlpGU+j4hACyAi7S7aIGC6aT7S13sHTji+TQbH7H4BwDZUeG4X8yh8hnflmlLFFKa4xeLdZ7gAuYIDLl1jCPpluQUgmDPNTS5Zl/PpFqOkENEx/hMErjJDmHyqE6vS2uN5zDr8R3a1bBmaehser37omk5AS8T8SrzntF4l5r6aC+g7YID2gRlg/4wJ8aZ71fpE48+E0+H5toh2HQ9NK7IBXEAtZY0LaC4MQB1TU+AA2ibvx7vUHND4T2N/rN/nvi30hZ7w8UflPEu2+QCo6WCn+3KPOOB2OhFP0YT1KL76nEMXfT5i1KOmBoHTBrYqAAAAAElFTkSuQmCC");
-  background-size: cover;
-  image-rendering: pixelated;
-  animation: wiggle-white 1.2s infinite alternate;
-}
-
-/* Keyframe animations: very simple vertical "wiggle" 
-   For real retro sprites, you'd typically use a multi-frame GIF 
-   or sprite sheet. This is just a demonstration. */
-@keyframes wiggle-red {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-3px); }
-}
-
-@keyframes wiggle-white {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-5px); }
 }
